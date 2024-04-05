@@ -32,7 +32,7 @@ def getPositionEval(fen):
     if sf_eval['type'] == 'cp':
         return sf_eval['value'] / 100
     else:
-        return 100 / sf_eval['value'] * 100
+        return sf_eval['value'] 
 
 def boardPrint():
     print(stockfish.get_board_visual())

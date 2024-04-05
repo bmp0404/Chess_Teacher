@@ -10,6 +10,7 @@ import threading
 import queue
 import time
 import argparse
+import Teach
 
 USE_UI = True
 LOG = False
@@ -94,17 +95,20 @@ def test_games(white_agent = RandomAgent(), black_agent = RandomAgent(), game_co
     print(f"{black_agent.__class__.__name__} Average time per move: {sum(b_total_times)/len(b_total_times):.2f}s")
 
 def moves_to_pgn(moves):
-    print(moves)
     game = chess.pgn.Game()
     node = game
-
+    evaluation = []
     board = chess.Board()
-
     for move in moves:
-        print(move)
-        move = chess.Move.from_uci(move)
-        board.push(move)
-        node = node.add_variation(move)
+        move_obj = chess.Move.from_uci(move)
+        board.push(move_obj)
+        node = node.add_variation(move_obj)
+
+        # Get evaluation after the move
+        result = ai.getPositionEval(board.fen())
+        evaluation.append(result)
+
+        node.comment = f"Evaluation: {result}"
 
     return game
 
@@ -122,17 +126,24 @@ def main(ui, white, black):
         player = game.get_next_player()
         next_move = player.get_move(board_state)
         print(next_move)
-        movelist.append((next_move))
+        movelist.append(next_move.uci())
         board_state.push(next_move)
 
         if USE_UI:
             ui.update_board(board_state)
         if LOG:
             game.print_state()
+    if USE_UI:
+            ui.destroy()
 
-    print("\nresult:",board_state.result())
-    print(movelist)
-    moves_to_pgn(movelist)
+    print("\nresult:", board_state.result())
+    pgn = moves_to_pgn(movelist)  # Get the PGN object
+    save_pgn(pgn, "game.pgn")  # Save PGN to a file
+    Teach.main();
+
+
+
+
 
 if __name__ == "__main__":
 

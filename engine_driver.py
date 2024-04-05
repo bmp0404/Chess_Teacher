@@ -1,6 +1,8 @@
 from ui.minimal_ui import ChessUI
 import ai.ai as ai
 from Game import ChessGame
+import chess
+import chess.pgn
 from concurrent.futures import ProcessPoolExecutor
 from Agents import *
 import chess.svg
@@ -91,15 +93,36 @@ def test_games(white_agent = RandomAgent(), black_agent = RandomAgent(), game_co
     print(f"\n{white_agent.__class__.__name__} Average time per move: {sum(w_total_times)/len(w_total_times):.2f}s")
     print(f"{black_agent.__class__.__name__} Average time per move: {sum(b_total_times)/len(b_total_times):.2f}s")
 
+def moves_to_pgn(moves):
+    print(moves)
+    game = chess.pgn.Game()
+    node = game
+
+    board = chess.Board()
+
+    for move in moves:
+        print(move)
+        move = chess.Move.from_uci(move)
+        board.push(move)
+        node = node.add_variation(move)
+
+    return game
+
+def save_pgn(game, filename):
+    with open(filename, "w") as f:
+        exporter = chess.pgn.FileExporter(f)
+        game.accept(exporter)
 
 def main(ui, white, black):
     game = ChessGame(white_agent=white, black_agent=black)
     print(f"W: {game.white.__class__.__name__} B: {game.black.__class__.__name__}")
     board_state = game.get_board()
-
+    movelist = []
     while not board_state.is_game_over():
         player = game.get_next_player()
         next_move = player.get_move(board_state)
+        print(next_move)
+        movelist.append((next_move))
         board_state.push(next_move)
 
         if USE_UI:
@@ -108,7 +131,8 @@ def main(ui, white, black):
             game.print_state()
 
     print("\nresult:",board_state.result())
-    
+    print(movelist)
+    moves_to_pgn(movelist)
 
 if __name__ == "__main__":
 

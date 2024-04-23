@@ -180,14 +180,12 @@ def main(ui, white, black):
 
     if USE_UI:
         ui_thread.join()
+        ui.destroy()
 
     print("\nresult:", board_state.result())
     pgn = moves_to_pgn(movelist, board_state.result(), game.white.__class__.__name__, game.black.__class__.__name__)
     save_pgn(pgn, "game.pgn")
     Teach.main(side)
-    ui.destroy()
-
-
 
 
 

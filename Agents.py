@@ -26,8 +26,8 @@ def timer(func):
 
 class Agent():
     def __init__(self) -> None:
-        self.evaluator = ev.gpt3_eval
-        self.depth = 5
+        self.evaluator = ev.nn_eval
+        self.depth = 4
 
     def get_move(self, board_state: Board) -> Move:
         pass
@@ -40,9 +40,9 @@ class MinimaxAgent(Agent):
     def get_move(self, board_state: Board) -> Move:
         def minimax(board, depth, Player): #Player will be a value true if it is the player false if it is the oponenet
             # return evaluation if depth is zero or if the board state is gameover
-            if depth == 0 or board.is_game_over:
+            if depth == 0 or board.is_game_over():
                 boardfen =  board.fen()
-                return random.randint(-100,100)
+                return self.evaluator(board)
             if board_state.turn == Player:
                 max_eval = float("-inf")
                 for move in list(board.legal_moves):
@@ -361,9 +361,9 @@ class MouseAgent(Agent):
 
 class StockfishAgent(Agent):
     def __init__(self) -> None:
-        self.skill_level = 0
+        self.skill_level = 4
         # self.ai = ai
-        ai.stockfish.set_skill_level(0)
+        ai.stockfish.set_skill_level(self.skill_level)
 
     def get_move(self, board_state: Board) -> Move:
         best_move = ai.getMove(board_state.fen())

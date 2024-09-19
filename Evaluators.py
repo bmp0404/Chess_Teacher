@@ -1,4 +1,11 @@
 import chess
+import chess
+# from ai.inputReaderl import *
+import torch
+import torch.nn as nn
+import ai.neural_net as ann
+import ai.inputReaderl as inputRead
+
 
 def gpt3_eval(board: chess.Board):
     if board.is_stalemate():
@@ -37,4 +44,33 @@ def gpt3_eval(board: chess.Board):
             score -= piece_value
     
     return score
+
+# Load the neural network model and move it to GPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = ann.SimpleNN().to(device)
+checkpoint = torch.load("model_checkpoint.pth")
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+
+# Assuming neural_net_input function returns the input features for the neural network
+def nn_eval(board: chess.Board):
+    if board.is_stalemate():
+        return 0
+
+    if board.is_checkmate():
+        if board.turn == chess.BLACK:
+            return 10000000000
+        else:
+            return -10000000000
+    
+    # Evaluate each square on the board
+    net_inputs = inputRead.neural_net_input(board)
+    inputs = torch.tensor(net_inputs, dtype=torch.float).to(device)
+
+    with torch.no_grad():
+        output = model(inputs)
+        value = output.item()  # Extract the scalar value from the tensor
+
+    return value
 

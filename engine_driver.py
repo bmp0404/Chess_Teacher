@@ -1,6 +1,8 @@
 from ui.minimal_ui import ChessUI
 import ai.ai as ai
 from Game import ChessGame
+import chess
+import chess.pgn
 from concurrent.futures import ProcessPoolExecutor
 from Agents import *
 import chess.svg
@@ -8,6 +10,7 @@ import threading
 import queue
 import time
 import argparse
+import Teach
 
 USE_UI = True
 LOG = False
@@ -91,24 +94,100 @@ def test_games(white_agent = RandomAgent(), black_agent = RandomAgent(), game_co
     print(f"\n{white_agent.__class__.__name__} Average time per move: {sum(w_total_times)/len(w_total_times):.2f}s")
     print(f"{black_agent.__class__.__name__} Average time per move: {sum(b_total_times)/len(b_total_times):.2f}s")
 
+def moves_to_pgn(moves, result, white = "opponet", black = "opponet"):
+    game = chess.pgn.Game()
+    game.headers["Result"] = result
+    game.headers["White"] = white
+    game.headers["Black"] = black
+    node = game
+    evaluation = []
+    board = chess.Board()
+    for move in moves:
+        move_obj = chess.Move.from_uci(move)
+        board.push(move_obj)
+        node = node.add_variation(move_obj)
+
+        # Get evaluation after the move
+        result = ai.getPositionEval(board.fen())
+        evaluation.append(result)
+
+        node.comment = f"Evaluation: {result}"
+
+    return game
+
+def save_pgn(game, filename):
+    with open(filename, "w") as f:
+        exporter = chess.pgn.FileExporter(f)
+        game.accept(exporter)
+
+from queue import Queue
 
 def main(ui, white, black):
     game = ChessGame(white_agent=white, black_agent=black)
+    board_state_queue = Queue()  # Queue to pass board states from game loop to UI update loop
+
+    name = game.white.__class__.__name__ 
+    side = 0
+    
+    if game.white.__class__.__name__ == "MouseAgent":
+        side = 0
+        name = input("What is your name: ")
+        game.white.__class__.__name__ = name
+    elif game.black.__class__.__name__ == "MouseAgent":
+        side = 1
+        name = input("What is your name: ")
+        game.black.__class__.__name__ = name
+
     print(f"W: {game.white.__class__.__name__} B: {game.black.__class__.__name__}")
     board_state = game.get_board()
+    movelist = []
 
-    while not board_state.is_game_over():
-        player = game.get_next_player()
-        next_move = player.get_move(board_state)
-        board_state.push(next_move)
+    # Define a function to run the game loop
+    def game_loop():
+        while not board_state.is_game_over():
+            player = game.get_next_player()
+            next_move = player.get_move(board_state)
+            print(next_move)
+            movelist.append(next_move.uci())
+            board_state.push(next_move)
 
-        if USE_UI:
-            ui.update_board(board_state)
-        if LOG:
-            game.print_state()
+            if LOG:
+                game.print_state()
 
-    print("\nresult:",board_state.result())
-    
+            # Put the current board state in the queue
+            board_state_queue.put(board_state.copy())
+
+    # Start the game loop in a separate thread
+    game_thread = threading.Thread(target=game_loop)
+    game_thread.start()
+
+    if USE_UI:
+        # Define a function to continuously update the UI
+        def update_ui_loop():
+            while True:
+                # Get the latest board state from the queue
+                board_state = board_state_queue.get()
+                ui.update_board(board_state)
+                if board_state.is_game_over():
+                    break  # Exit the loop if the game is over
+
+        # Start the UI update loop in a separate thread
+        ui_thread = threading.Thread(target=update_ui_loop)
+        ui_thread.start()
+
+    # Wait for the game loop thread to finish
+    game_thread.join()
+
+    if USE_UI:
+        ui_thread.join()
+        ui.destroy()
+
+    print("\nresult:", board_state.result())
+    pgn = moves_to_pgn(movelist, board_state.result(), game.white.__class__.__name__, game.black.__class__.__name__)
+    save_pgn(pgn, "game.pgn")
+    Teach.main(side)
+
+
 
 if __name__ == "__main__":
 

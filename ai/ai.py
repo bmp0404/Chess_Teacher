@@ -8,9 +8,11 @@ stockfish = None
 # else: 
 #     stockfish = Stockfish("./lib/stockfish")
 # stockfish = Stockfish("/usr/local/Cellar/stockfish/15.1/bin/stockfish")#Chess_Teacher/ai/stockfish-windows-x86-64.exe
-stockfish = Stockfish("/opt/homebrew/bin/stockfish")
+# stockfish = Stockfish("C:\\Users\\hursh\Desktop\\ECLAIR\\Chess_Teacher\\ai\\stockfish-windows-x86-64.exe")
+# Instead put the directory of the stockfish location
+stockfish = Stockfish("/home/anikpatel/Projects/ChessTeacher/stockfish-ubuntu-x86-64-avx2/stockfish/stockfish-ubuntu-x86-64-avx2")
 stockfish.set_depth(1)
-stockfish.set_skill_level(0)
+# stockfish.set_skill_level(20)
 
 def getMove(fen):
     stockfish.set_fen_position(fen)
@@ -30,7 +32,7 @@ def getPositionEval(fen):
     if sf_eval['type'] == 'cp':
         return sf_eval['value'] / 100
     else:
-        return 100 / sf_eval['value'] * 100
+        return sf_eval['value'] 
 
 def boardPrint():
     print(stockfish.get_board_visual())

@@ -75,6 +75,10 @@ class ChessApp(tk.Tk):
             self.board.pop()
             self.update_board()
 
+    def close_app(self):
+        self.destroy()
+
+
 if __name__ == "__main__":
     app = ChessApp()
     app.mainloop()
